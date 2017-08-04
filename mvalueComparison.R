@@ -5,8 +5,16 @@ BETRNETmset = load("C:/Users/hansg17/Documents/methData2017/mset.swan.BETRNet.rd
 BETRNETmset = mset.swan
 MEMOset =  load("C:/Users/hansg17/Documents/methData2017/msetMEMO.rda")
 MEMOset = mset.swan
+BLOODset = load("C:/Users/hansg17/Documents/methData2017/bloodM.rda",verbose = T)
+BLOODset = bloodM
 MEMOpheno = pheno
 pheno =  load("C:/Users/hansg17/Downloads/pheno.BETRNet.rda" , verbose = T)
+recMset = load("C:/Users/hansg17/Documents/methData2017/recM.rda",verbose = T)
+recMset = recM
+#contains objects DNAsoln and age.BE30
+matched30BE = load("C:/Users/hansg17/Documents/methData2017/30matchedBE.rda",verbose = T)
+
+
 
  #look at cpgs that are present in both BETRNET and MEMOset and augment manifest as well
  intercpgs = intersect(rownames(BETRNETmset),rownames(MEMOset))
@@ -16,24 +24,36 @@ pheno =  load("C:/Users/hansg17/Downloads/pheno.BETRNet.rda" , verbose = T)
  manifestData = manifestData[cpic,]
  
  
- 
- 
- 
  #ids contains indices of SQamnus samples
  ids = c(1:367)[pheno$Tissue_Type == "SQ"]
  #setdiff removes sqamus examples contaminated with barrets
  ids = setdiff(ids, c(94,260,261,268,273))
  #dum contains the patient sample names for given indices
  sampName = as.character(pheno$X[ids])
- 
  SQMval = getM(BETRNETmset[,sampName])
  
  
  cardiaids = c(1:367)[pheno$Tissue_Type == "cardia"]
  #sample names for cardia samples
  cardiaLAB = as.character(pheno$X[cardiaids])
- 
  cardVal = getM(BETRNETmset[,cardiaLAB])
+ 
+ #retrieve fundus values from BETRNET
+ fundusids = c(1:367)[pheno$Tissue_Type == "fundus"]
+ fundusVal = getM(BETRNETmset[,fundusids])
+ fundusSig = fundusVal[sigRows,]
+ 
+ 
+ #look at cpgs that are common to both blood and normal tissue
+ #blood methylation data
+ universal = intersect(cpic,rownames(BLOODset))
+ bloodVal = BLOODset[universal,]
+ 
+ 
+ 
+ 
+ #========================================================================================================
+ 
  dif = cardVal - SQMval
  meanrowCARD = rowMeans(cardVal)
  meanrowSQM = rowMeans(SQMval)
@@ -86,9 +106,6 @@ pheno =  load("C:/Users/hansg17/Downloads/pheno.BETRNet.rda" , verbose = T)
  
  #order makers by methylation value
 
- 
- 
- 
  #MEMO interpretation
  
  sum(find$qval[sigRows] > 0.01)
@@ -101,7 +118,7 @@ pheno =  load("C:/Users/hansg17/Downloads/pheno.BETRNet.rda" , verbose = T)
  plot(deltaM, qval, pch = 19, cex = 0.5)
  
  #boxplot
- box = list(BE = BEsig[137, ], CARD = cardVal[sigRows[137],], SQ =  SQMval[sigRows[137],], FUND = fundusSig[137,] )
+ box = list(BE = BEsig[1, ], CARD = cardVal[sigRows[1],], SQ =  SQMval[sigRows[1],], FUND = fundusSig[1,] )
  boxplot(box)
  t.test(BEsig[2, ], cardVal[sigRows[2],])
  
@@ -117,6 +134,8 @@ cor.test(meanrowSQM[sigRows], BEmean)
 corBE = numeric(265)
 corSQ = numeric(265)
 corCARD = numeric(265)
+
+#for loops test if cpgs correlate with age ie are clock cpgs 
 for(i in 1:nrow(sigBEval)) {
   corBE[i] = cor.test(sigBEval[i, ], pheno$Age_at_biopsy[BEids])$p.value
   
@@ -134,10 +153,6 @@ for(i in 1:nrow(sigCARD)){
   corCARD[i] = cor.test(sigCARD[i, ], pheno$Age_at_biopsy[cardiaids])$p.value
 }
 
-
-
-
-
 #Beta Value Analysis 
 #cardValB = getBeta(BETRNETmset[,cardiaLAB])
 #BEvalB = getBeta(BETRNETmset[,BEids])
@@ -153,17 +168,8 @@ for(i in 1:nrow(sigCARD)){
 #do side by side comparison for matched samples
 sigdifBeta = which( abs(meanrow(cardValB)- meanrow(SQMvalB))>.5)
  
- #find$qval < 1.e-6
-#look at low qval but mediam m val dif
- #look at how many unique siland
- # look at picking q-values with 2 contrast
 
-#fundus analysis 
-fundusids = c(1:367)[pheno$Tissue_Type == "fundus"]
-fundusVal = getM(BETRNETmset[,fundusids])
-fundusSig = fundusVal[sigRows,]
-
-test2 = cor.test(rowMeans(fundusSig), BEmean)
+test2 = cor.test(rowMeans(fundusSig), rowMeans(BEval[sigRows,]))
 
 #different tissue cluster withhemselves
 #body exon1 tss 5primeUTR
@@ -171,14 +177,7 @@ test2 = cor.test(rowMeans(fundusSig), BEmean)
 cpgs = names(sigRows)
 som = manifestData[cpgs,"UCSC_RefGene_Name"]
 
-#look at cpgs associated with TOP63
-
-
-#future analysis
-#compare memeo, inter patient and so forth 
-#compare red blood cell
-#phylogenetic analysis ofmethylation to determine root of cell
-#look at cpgs with most individual variance
+#look at cpgs associated with TP63
 
 #checking for specific genes in markers
 som = manifestData[cpgs, "USC_RefGene_Name"]
@@ -189,24 +188,24 @@ sort(geneL)
 
 
 #PCA Analysis
-main = rbind(t(SQMval[sigRows,]),t(BEsig), t(cardVal[sigRows,]), t(fundusSig),t(BEnine),t(cardsamp))
+#main = rbind(t(SQMval[sigRows,]),t(BEsig), t(cardVal[sigRows,]), t(funduVal[sigRows,]),t(BEnine),t(cardsamp))
+main = rbind(t(SQMval[sigRows,]),t(BEval[sigRows,]), t(cardVal[sigRows,]), t(fundusVal[sigRows,]), t(allDWELL))
 maincor = cor(main)
 eigenmain = eigen(maincor)
 proj = main %*% eigenmain$vector
-color = c(rep(2,52),rep(5,64), rep(4,9),rep(6,12),rep(7,14))
+color = c(rep(2,52),rep(5,64), rep(4,9),rep(6,12),rep(7,65))
 plot(proj[,1],proj[,2],col = color,pch = 19,xlab = "PCA1",ylab = "PCA2")
-legend("topleft", legend = c("SQ","BE","CARD","Fundus","Matched"), col = c(2,5,4,6,7),pch = 19 ,bty = "n")
+#this is going to seperate 
+legend("topleft", legend = c("SQ","BE","CARD","Fundus","MEMO"), col = c(2,5,4,6,7),pch = 19 ,bty = "n")
 title("TIssue Methylation PCA Analysis")
 #mds analysis (very similar)
-mdsPlot(t(main), sampGroups =  color ,pch = 19)
+mdsPlot(t(main), sampGroups =  color,pch = 19)
 
 
 
-#metylation analysis at important cpg spots
+#look at relations in the significant cpgs identified
 library(MvalPlot)
 avgIslPlot_Mval(SQMval, BEval, "PRICKLE3")
-
-
 
 islands = manifestData[sigRows, ]$Islands_Name
 #quite a large amount of OpenSea in islandRelat 
@@ -223,7 +222,7 @@ cleaned = sort(unique(unlist(strsplit(opengenenames,";"))))
 MEMOMval = getM(MEMOset)
 datsix = MEMOpheno[MEMOpheno$Patient_ID == 619,]
 
-MEMOsmall = MEMOMval[names(sigRows),]
+MEMOsmall = MEMOMval[sigRows,]
 #set of samples
 #memcol = MEMOMval[,sixsamp]
 #cardsamp contains cardia data 
@@ -250,7 +249,7 @@ cor.test(pat8Mval[,1]-meanCARD,pat8Mval[,4]-meanCARD)
 #8cardia EAC    HGD    fundus
 #22cardia HGD    EAC    BE     SQ     fundus BE     BE    
 pat22 = pheno[pheno$Patient_ID == 22,]
-pat22Mval = getM(BETRNETmset[,as.character(pat22$X)])
+pat22Mval = getM(BETRNETmset[sigRows,as.character(pat22$X)])
 cor.test(pat8Mval[,1],pat8Mval[,3])
 cor.test()
 
@@ -269,47 +268,40 @@ library(corrplot)
 corrplot(res, type = "upper", order = "hclust", 
          tl.col = "black", tl.srt = 45)
 
-
-
-
-
-
-
 #look at varience around mean 
-meanCARD = rowMeans(sigCARD)
-meanBE = rowMeans(BEsig)
+meanCARD = rowMeans(cardVal[sigRows,])
+meanBE = rowMeans(BEval[sigRows,])
+corarraynot = c()
+#adjust for z-score
+BEsds = apply(BEval[sigRows,],1,sd)
+CARDsds = apply(cardVal[sigRows,],1,sd)
 for(i in 1:13)
   {
-  index = sample(1:265,265,replace = FALSE)
-  corarray[i] = cor(cardsamp-meanCARD, as.vector(MEMOsmall[,sixsamp[i] ]- meanCARD))
+  #index = sample(1:265,265,replace = FALSE)
+  
+  corarray[i] = cor((cardsamp -meanCARD)/CARDsds, as.vector((MEMOsmall[,sixsamp[i] ]- meanCARD)/BEsds))
+  corarraynot[i] = cor(cardsamp, as.vector(MEMOsmall[,sixsamp[i] ]))
 }
 
 plot(distlist, corarray,pch = 19)
 #cardamp,
 
 #rectal analysis to compare 
-recMset = load("C:/Users/hansg17/Documents/methData2017/recM.rda",verbose = T)
-recMset = recM
 recSig = recMset[sigRows,]
-box = list(BE = BEsig[1, ], CARD = cardVal[sigRows[1],], SQ =  SQMval[sigRows[1],], FUND = fundusSig[137,], REC = recSig[1,])
+chosen = sigRows[125]
+box = list(BE = BEval[chosen,], CARD = cardVal[chosen,], SQ =  SQMval[chosen,], FUND = fundusVal[chosen,], REC = recMset[chosen,],BL = bloodVal[chosen,])
 boxplot(box)
-#BE and rectal hasve significant but very small correlation
-cor.test(rowMeans(BEsig),rowMeans(recSig))
+#BE and rectal have decent correlation 
+cor.test(rowMeans(BEval[sigRows,]),rowMeans(recMset[sigRows,]))
+#Blood does not have high correlation 
+cor.test(rowMeans(BEval[sigRows,]),rowMeans(bloodVal[sigRows,]))
 
 
 
+#code below deals with finding diffential methylation markers between fundus and cardia
 cardMEMOval = getM(MEMOset[,c("200325530003_R01C01","200394970056_R04C01","200325530006_R02C02")])
-#200325530003_R01C01
-#200394970056_R04C01
-#no normal stomach I guess
+#cardStrom contains the fundus values 
 cardStom = getM(MEMOset[,c("9979553161_R04C01", "9985131138_R06C01","9992571073_R01C01")])
-
-
-
-
-
-fundusVal = cbind(fundusVal, )
-
 cardFun = cbind(cardVal,cardMEMOval,fundusVal,cardStom)
 inputFC = c(rep("CARD",12),rep("FUND",15))
 #fundus cardia markers
@@ -325,11 +317,7 @@ realsigFC = sigFC[abs(difFC) > 4]
 
 
 sigFC = rownames(fundfind[1:200,])
-
-
 sigFC[grepl("LGR5", manifestData[sigFC, "UCSC_RefGene_Name"])]
-
-
 cor.test(meanCARD[sigFC], meanBE[sigFC])
 manifestData[sigFC,"UCSC_RefGene_Name"]
 cor.test(meanCARD[realsigFC],meanFUND[realsigFC])
@@ -338,10 +326,20 @@ abline(0,1)
 plot(c(rep(1,9),rep(2,12)), c(cardVal["cg15909056",], fundusVal["cg15909056",]),pch =19)
 
 #experiment 
-#BE and cardia actually differe significantly  
+#BE and cardia actually differe significantly 
 inputBE = c(rep("CARD",9),rep("BE",64))
 beCARD = cbind(cardVal[,],BEval[,1:64])
-cardBE = dmpFinder(dat = beFun,  pheno = inputBE,  type = "categorical",shrinkVar = TRUE)
+cardBE = dmpFinder(dat = beCARD,  pheno = inputBE,  type = "categorical",shrinkVar = TRUE)
+cardBEsig = rownames(cardBE[1:200,])
+
+#none of these BE cARDIA differentialy methylated cpgs seem like drifters 
+corBECARD = numeric(200)
+#look if those are clock cpgs 
+for(i in 1:length(cardBEsig)) {
+  corBECARD[i] = cor(sigBEval[i, ], pheno$Age_at_biopsy[BEids])
+  
+}
+
 
 
 #hierarchical clustering
@@ -363,67 +361,80 @@ colnames(mod) <- dug
 clust4 = hclust(dist(t(mod[finalcpgs,])))
 plot(clust4)
 
+#look at dwell time vs correlation to see if it
+#induces some form of phylogenetic radiation 
+
+#load mset with dwell times for each sample
+msetHans22 <- read.csv("~/msetHans22.csv")
+patDWELL = msetHans22$tissue_age
+#be careful using which and indices 
+serious = which(!is.na(patDWELL))
+DWELL = patDWELL[serious]
+namesDWELL = as.character(as.vector(msetHans22[serious,]$X))
+allDWELL = MEMOsmall[,namesDWELL]
+allDWELL = MEMOsmall[,namesDWELL]
+#msetHans22[serious,]$tissue_age
+corDWELL = numeric(length(namesDWELL))
+meanSQM = meanrowSQM[sigRows]
+cosineDist <- function(x){
+  as.dist(1 - x%*%t(x)/(sqrt(rowSums(x^2) %*% t(rowSums(x^2))))) 
+}
 
 
+library("proxy")
+for(i in 1:length(DWELL)) {
+  
+    corDWELL[i] = cor(c(memeCARD), c(MEMOsmall[,namesDWELL[i]]))
+}
+ding = corDWELL[corDWELL > 0.8]
+stuff = DWELL[corDWELL > 0.8]
+plot(stuff,ding,pch=19)
+
+plot(DWELL, corDWELL,pch=19)
+points(stuff,ding, col = 2, pch = 19)
+cor.test(stuff,ding)
+ding = which(corDWELL < .3)
 
 
-#mean variance anlysis for fundus , carida, BE for patients with all 3 samples
-#look at PCA analysis for 5 matched samples 
+#looking at commonality between markers 
+#fundus cardia 
+a = rownames(fundfind[1:200,])
+#cardia BE diff makers
+b = rownames(cardBE[1:200,])
+#carida SQ
+c = rownames(find[1:200,])
+#seems to be no intersects in cpg sets
+ab = intersect(a,b)
+ac = intersect(a,c)
+bc = intersect(b,c)
 
 
-#finding matched patients
+#look at other measures of similarity
 
+#ask georg about taking out a few cpgs for regularization between samples
 
+#see if intersects in dmps cpgs are related 
 
+#color by age and see if they cluster
 
+#blood meth value correlation blood takes up a lot of damages stuff
 
+#centroid distance vs GEJ distance correlation 
 
+#dwell time vs correlation with cardia
 
+#test matched cardia squamus
 
+#redo correlation graph with only BE
 
+#familial BE
 
+nameMEME= c("200325530006_R02C02", "200325530006_R06C01", "200394970056_R04C01", "200325530003_R01C01", "200325530006_R05C01")
+memeCARD = rowMeans(MEMOsmall[,nameMEME])
+plot(memeCARD, meanCARD , pch =19)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#other stuff
-cpgsIsl1 = c(1:482929)[manifestData$Islands_Name == "chr6:31830299-31830948"]
-
-cpgIslRel = manifestData[cpgsIsl1]
-
-
-#MDS analysis 
-
-#most variance in SQamus
-#look at variance within idividuals to see what ar best tracts 
-#find all paients with both squamus
-SQcard = pheno$Patient_ID[pheno$Tissue_Type == "SQ" ]
-
-
-
-
-#correlkation with distance
-#fundus and blood
-#island plots
-
+#analysis for BETRNET matched
+matBETnames = colnames(BETRNETmset[pheno$DNA.soln == DNAsoln])
 
 
 
