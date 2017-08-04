@@ -369,6 +369,8 @@ msetHans22 <- read.csv("~/msetHans22.csv")
 patDWELL = msetHans22$tissue_age
 #be careful using which and indices 
 serious = which(!is.na(patDWELL))
+serious2 = which(msetHans22$BE == "yes")
+serious = intersect(serious,serious2)
 DWELL = patDWELL[serious]
 namesDWELL = as.character(as.vector(msetHans22[serious,]$X))
 allDWELL = MEMOsmall[,namesDWELL]
@@ -376,9 +378,6 @@ allDWELL = MEMOsmall[,namesDWELL]
 #msetHans22[serious,]$tissue_age
 corDWELL = numeric(length(namesDWELL))
 meanSQM = meanrowSQM[sigRows]
-cosineDist <- function(x){
-  as.dist(1 - x%*%t(x)/(sqrt(rowSums(x^2) %*% t(rowSums(x^2))))) 
-}
 
 
 library("proxy")
@@ -386,11 +385,12 @@ for(i in 1:length(DWELL)) {
   
     corDWELL[i] = cor(c(memeCARD), c(MEMOsmall[,namesDWELL[i]]))
 }
-ding = corDWELL[corDWELL > 0.8]
-stuff = DWELL[corDWELL > 0.8]
+plot(DWELL, corDWELL,pch=19)
+ding = corDWELL[corDWELL > 0.6]
+stuff = DWELL[corDWELL > 0.6]
 plot(stuff,ding,pch=19)
 
-plot(DWELL, corDWELL,pch=19)
+
 points(stuff,ding, col = 2, pch = 19)
 cor.test(stuff,ding)
 ding = which(corDWELL < .3)
@@ -409,7 +409,7 @@ ac = intersect(a,c)
 bc = intersect(b,c)
 
 
-#look at other measures of similarity
+
 
 #ask georg about taking out a few cpgs for regularization between samples
 
@@ -433,8 +433,37 @@ nameMEME= c("200325530006_R02C02", "200325530006_R06C01", "200394970056_R04C01",
 memeCARD = rowMeans(MEMOsmall[,nameMEME])
 plot(memeCARD, meanCARD , pch =19)
 
+
+BETRNET200 = getM(BETRNETmset[sigRows, ])
 #analysis for BETRNET matched
-matBETnames = colnames(BETRNETmset[pheno$DNA.soln == DNAsoln])
+matBETnames = pheno[pheno$DNA.soln %in% DNAsoln,]
+allBETmach  = BETRNET200[,matBETnames]
+
+
+index = which(pheno$DNA.soln %in% DNAsoln)
+indexSQM = index + 1
+
+allSQMmatch = BETRNET200[,indexSQM]
+
+corBETdwell = numeric(ncol(allBETmach))
+
+#compare squamus with cardia and barrett
+
+for(i in 1:length(corBETdwell)) {
+  
+  corBETdwell[i] = cor(c(meanSQM), c(allBETmach[,matBETnames[i]]))
+  
+}
+#why are squamus markers so well correlated 
+plot(age.BE30 - age,corBETdwell,pch = 19)
+cor.test(age.BE30 - age,corBETdwell)
+
+
+age = c(8.679, 32.44, 12.77, 1.967, 4.664, 9.01 , 47.54, 26.76,  46.82 ,  49.29 , 28.66 , 17.96 ,19.82 ,59.04 ,31.75 , 34.67 ,42.03 ,49.24 ,26.58,
+50.07, 27.53, 38.95, 25.03, 50.41, 40.71, 56.01, 29.19, 58.68, 40.77, 46.78)
+
+
+
 
 
 
