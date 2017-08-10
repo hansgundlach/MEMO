@@ -7,12 +7,18 @@ MEMOset =  load("C:/Users/hansg17/Documents/methData2017/msetMEMO.rda")
 MEMOset = mset.swan
 BLOODset = load("C:/Users/hansg17/Documents/methData2017/bloodM.rda",verbose = T)
 BLOODset = bloodM
-MEMOpheno = pheno
-pheno =  load("C:/Users/hansg17/Downloads/pheno.BETRNet.rda" , verbose = T)
+MEMOpheno <- read.csv("~/methData2017/new_pdat_072516.csv") 
+
+pheno <- save("C:/Users/hansg17/Documents/methData2017/pheno.BETRNet." , verbose = T)
+phenoset = load("C:/Users/hansg17/Documents/methData2017/pheno.BETRNet.rda" , verbose = T)
+pheno = pheno
+
+msetHans22 <- read.csv("~/methData2017/msetHans22.csv")
 recMset = load("C:/Users/hansg17/Documents/methData2017/recM.rda",verbose = T)
 recMset = recM
 #contains objects DNAsoln and age.BE30
 matched30BE = load("C:/Users/hansg17/Documents/methData2017/30matchedBE.rda",verbose = T)
+
 
 
 
@@ -54,18 +60,6 @@ matched30BE = load("C:/Users/hansg17/Documents/methData2017/30matchedBE.rda",ver
  
  #========================================================================================================
  
- dif = cardVal - SQMval
- meanrowCARD = rowMeans(cardVal)
- meanrowSQM = rowMeans(SQMval)
- 
- difmeans = meanrowCARD - meanrowSQM
- d <- density(difmeans)
- plot(d)
- a = list(cardia = cardVal[2,], SQ = SQMval[2,])
- boxplot(a)
- 
- 
-
  #dmp finder
  inputclass = c(rep("SQ",52),rep("CARD",9))
  total = cbind(SQMval, cardVal)
@@ -75,20 +69,6 @@ matched30BE = load("C:/Users/hansg17/Documents/methData2017/30matchedBE.rda",ver
  #look at the rows where mean cardia and squamus mean differ by 5 in M-values 
  sigRows =  rownames(find[1:200,])
    
-   
- # old sigrows which(abs(meanrow - meanrowSQM) > 5)
- 
- sigMeans = difmeans[sigRows]
- d <- density(sigMeans)
- plot(d)
- 
- #mean m value for difference larger then five
- #squamus is fairly large
- largesig = which(meanrow - meanrowSQM > 5)
- val = meanrowSQM[largesig]
- val2 = meanrow[largesig]
- 
- 
  #BEids 
  BEids = c(1:367)[pheno$Tissue_Type == "BE"& pheno$Patient_Dx == "BE" & pheno$Project_ID == "BETRNet"]
  BEval = getM(BETRNETmset[,BEids])
@@ -103,33 +83,12 @@ matched30BE = load("C:/Users/hansg17/Documents/methData2017/30matchedBE.rda",ver
  
  BEmean = rowMeans(BEsig)
  
- 
- #order makers by methylation value
-
- #MEMO interpretation
- 
- sum(find$qval[sigRows] > 0.01)
- sort(find$qval[sigRows])
-#volcano plot
- deltaM = difmeans[sigRows]
- 
- qval = -log(find$qval[sigRows])
- 
- plot(deltaM, qval, pch = 19, cex = 0.5)
- 
  #boxplot
  box = list(BE = BEsig[1, ], CARD = cardVal[sigRows[1],], SQ =  SQMval[sigRows[1],], FUND = fundusSig[1,] )
  boxplot(box)
  t.test(BEsig[2, ], cardVal[sigRows[2],])
  
- 
- #plot
- sigCARD = cardVal[sigRows,]
- sigSQMval = SQMval[sigRows,]
- sigBEval = BEval[sigRows,]
- 
- plot(SQMval[sigRows,1], pch = 19, cex = 0.6, , ylim = c(-6,6) )
-cor.test(meanrowSQM[sigRows], BEmean)
+
 #testing for drift cpgs in BE
 corBE = numeric(265)
 corSQ = numeric(265)
@@ -153,12 +112,6 @@ for(i in 1:nrow(sigCARD)){
   corCARD[i] = cor.test(sigCARD[i, ], pheno$Age_at_biopsy[cardiaids])$p.value
 }
 
-#Beta Value Analysis 
-#cardValB = getBeta(BETRNETmset[,cardiaLAB])
-#BEvalB = getBeta(BETRNETmset[,BEids])
-#SQMvalB = getBeta(BETRNETmset[,sampName])
-#difBeta = meanrow(cardValB) - meanrow(SQMvalB)
-
 
 #filter out q-value below 0.5
 
@@ -174,44 +127,40 @@ test2 = cor.test(rowMeans(fundusSig), rowMeans(BEval[sigRows,]))
 #different tissue cluster withhemselves
 #body exon1 tss 5primeUTR
 
-cpgs = names(sigRows)
-som = manifestData[cpgs,"UCSC_RefGene_Name"]
-
 #look at cpgs associated with TP63
-
 #checking for specific genes in markers
-som = manifestData[cpgs, "USC_RefGene_Name"]
+som = manifestData[sigRows, "USC_RefGene_Name"]
 duck = strsplit(som, ";")
 unlistduck = unlist(duck)
 geneL = unique(unlistduck)
 sort(geneL)
 
 
-#PCA Analysis
+#PCA Analysis for BETRNET methylation levels at sigRow cpgs
 #main = rbind(t(SQMval[sigRows,]),t(BEsig), t(cardVal[sigRows,]), t(funduVal[sigRows,]),t(BEnine),t(cardsamp))
-main = rbind(t(SQMval[sigRows,]),t(BEval[sigRows,]), t(cardVal[sigRows,]), t(fundusVal[sigRows,]), t(allDWELL))
+
+main = rbind(t(SQMval[finalcpgs,]),t(BEval[finalcpgs,]), t(cardVal[finalcpgs,]), t(fundusVal[finalcpgs,]))
 maincor = cor(main)
 eigenmain = eigen(maincor)
 proj = main %*% eigenmain$vector
-color = c(rep(2,52),rep(5,64), rep(4,9),rep(6,12),rep(7,65))
+color = c(rep(2,52),rep(5,64), rep(4,9),rep(6,12))
 plot(proj[,1],proj[,2],col = color,pch = 19,xlab = "PCA1",ylab = "PCA2")
 #this is going to seperate 
-legend("topleft", legend = c("SQ","BE","CARD","Fundus","MEMO"), col = c(2,5,4,6,7),pch = 19 ,bty = "n")
-title("TIssue Methylation PCA Analysis")
+legend("topleft", legend = c("SQ","BE","CARD","Fundus"), col = c(2,5,4,6,7),pch = 19 ,bty = "n")
+title("Tissue Methylation PCA400 Analysis")
 #mds analysis (very similar)
 mdsPlot(t(main), sampGroups =  color,pch = 19)
 
 
 
 #look at relations in the significant cpgs identified
-library(MvalPlot)
-avgIslPlot_Mval(SQMval, BEval, "PRICKLE3")
+#do all the cpgs go up in unison or is their variety
 
 islands = manifestData[sigRows, ]$Islands_Name
 #quite a large amount of OpenSea in islandRelat 
 islandRelat = manifestData[names(sigRows),]$Relation_to_Island
-#relation to island
-opencpgnames
+#relation to island for cpgs in sigRows 
+#seems like an abnormal number are open sea 
 opengenenames = manifestData[names(sigRows), "UCSC_RefGene_Name"][manifestData[names(sigRows),]$Relation_to_Island == "OpenSea"]
 stuff = manifestData[opencpgnames,"Relation_to_Island" ]   
 #gene names cleaned and sorted
@@ -219,10 +168,9 @@ cleaned = sort(unique(unlist(strsplit(opengenenames,";"))))
 
 
 #look at correlation up esophagus in MEMO data
-MEMOMval = getM(MEMOset)
 datsix = MEMOpheno[MEMOpheno$Patient_ID == 619,]
 
-MEMOsmall = MEMOMval[sigRows,]
+MEMOsmall = MEMOset[sigRows,]
 #set of samples
 #memcol = MEMOMval[,sixsamp]
 #cardsamp contains cardia data 
@@ -233,8 +181,62 @@ sixsamp = as.character(datsix$X[-13])
 BEnine  = MEMOsmall[,sixsamp[1:13]]
 #correlation with all samples
 meanBETRNET = rowMeans(sigCARD)
-corarray = c()
+
 distlist = c(35,34,33,32,31,30,29,28,27,26,25,24,20)
+
+#correlation with carida for BE samples in patient 619
+#look at varience around mean 
+meanCARD = rowMeans(cardVal[sigRows,])
+meanBE = rowMeans(BEval[sigRows,])
+corarraynot = c()
+#adjust for z-score
+BEsds = apply(BEval[sigRows,],1,sd)
+CARDsds = apply(cardVal[sigRows,],1,sd)
+#patient 619 has 13 samples 
+#if I change cardia samples correlation goes away but correlation pattern does not 
+
+corarray = c()
+  #7 random 6 higly correlated 5 random 4 uhh 3 good 
+for(i in 1:13)
+{
+  print(i)
+  #cardVal[sigRows]
+  #index = sample(1:265,265,replace = FALSE)
+  corarray[i] = cor((cardVal[sigRows, 2] - meanCARD)/CARDsds, 
+                    as.vector((MEMOsmall[,sixsamp[i] ]- meanCARD)/CARDsds))
+  #corarray[i] = cor(avgMEMCARD, as.vector(MEMOsmall[,sixsamp[i] ]))
+  #corarraynot[i] = cor(cardsamp, as.vector(MEMOsmall[,sixsamp[i] ]))
+}
+
+plot(distlist[1:13], corarray,pch = 19)
+title("Mean Correlation Patient 619 Cardia ")
+
+
+
+
+
+
+
+
+#488 analysis
+#######################################################################33333
+pat488 = MEMOpheno[MEMOpheno$Patient_ID == 488,]
+pat489 = MEMOpheno[MEMOpheno$Patient_ID == 489,]
+
+samples = as.character(pat488$X)
+
+dist488 = c(33,31, 0,37,35,0, 0 )
+corarray488 = numeric(length(dist488))
+for(i in 1:7)
+{
+  #index = sample(1:265,265,replace = FALSE)
+  #corarray[i] = cor((cardsamp -meanCARD)/CARDsds, as.vector((MEMOsmall[,sixsamp[i] ]- meanBE)/BEsds))
+  corarray488[i] = cor(memeCARD, as.vector(MEMOsmall[,samples[i] ]  - meanBE))
+ # corarraynot488[i] = cor(cardsamp, as.vector(MEMOsmall[,sixsamp[i] ]))
+}
+
+plot(dist488, corarray488,pch = 19)
+
 
 
 #squamus carida 489 488 look at BETRNET 8 and 22
@@ -268,23 +270,8 @@ library(corrplot)
 corrplot(res, type = "upper", order = "hclust", 
          tl.col = "black", tl.srt = 45)
 
-#look at varience around mean 
-meanCARD = rowMeans(cardVal[sigRows,])
-meanBE = rowMeans(BEval[sigRows,])
-corarraynot = c()
-#adjust for z-score
-BEsds = apply(BEval[sigRows,],1,sd)
-CARDsds = apply(cardVal[sigRows,],1,sd)
-for(i in 1:13)
-  {
-  #index = sample(1:265,265,replace = FALSE)
-  
-  corarray[i] = cor((cardsamp -meanCARD)/CARDsds, as.vector((MEMOsmall[,sixsamp[i] ]- meanCARD)/BEsds))
-  corarraynot[i] = cor(cardsamp, as.vector(MEMOsmall[,sixsamp[i] ]))
-}
 
-plot(distlist, corarray,pch = 19)
-#cardamp,
+
 
 #rectal analysis to compare 
 recSig = recMset[sigRows,]
@@ -302,21 +289,22 @@ cor.test(rowMeans(BEval[sigRows,]),rowMeans(bloodVal[sigRows,]))
 cardMEMOval = getM(MEMOset[,c("200325530003_R01C01","200394970056_R04C01","200325530006_R02C02")])
 #cardStrom contains the fundus values 
 cardStom = getM(MEMOset[,c("9979553161_R04C01", "9985131138_R06C01","9992571073_R01C01")])
-cardFun = cbind(cardVal,cardMEMOval,fundusVal,cardStom)
-inputFC = c(rep("CARD",12),rep("FUND",15))
-#fundus cardia markers
+#cardFun = cbind(cardVal,cardMEMOval,fundusVal,cardStom) when memo was combined
+cardFun = cbind(cardVal,fundusVal)
+inputFC = c(rep("CARD",9),rep("FUND",12))
+#fundus cardia markers using combined MEMO 
 fundfind = dmpFinder(dat = cardFun ,  pheno = inputFC,  type = "categorical",shrinkVar = TRUE)
-sigFC = rownames(fundfind)[fundfind$qval < 5*1e-4]
+#rownames(fundfind)[fundfind$qval < 5*1e-4]
 meanFUND = rowMeans(fundusVal)
 meanCARD = rowMeans(cardVal)
 meanBE = rowMeans(BEval)
-cor.test(meanCAR[sigFC],meanFUND[sigFC])
+
 difFC = meanFUND[sigFC] - meanCARD[sigFC]
-realsigFC = sigFC[abs(difFC) > 4]
 
 
 
 sigFC = rownames(fundfind[1:200,])
+
 sigFC[grepl("LGR5", manifestData[sigFC, "UCSC_RefGene_Name"])]
 cor.test(meanCARD[sigFC], meanBE[sigFC])
 manifestData[sigFC,"UCSC_RefGene_Name"]
@@ -342,12 +330,12 @@ for(i in 1:length(cardBEsig)) {
 
 
 
-#hierarchical clustering
+#hierarchical clustering of patient 8 samples 
 colnames(pat8Mval)
 clusters <-hclust(dist(t(pat8Mval)))
 plot(clusters)
 
-#final list of cpgs combination of fundusSQ cpgs and caridaSQ cpgs 
+#final list of cpgs combination of fundusSQ cpgs and caridaSQ cpgs 400 in length
 finalcpgs = c(sigRows, sigFC)
 
 sigpat22 = pat22Mval[finalcpgs,]
@@ -365,27 +353,35 @@ plot(clust4)
 #induces some form of phylogenetic radiation 
 
 #load mset with dwell times for each sample
-msetHans22 <- read.csv("~/msetHans22.csv")
-patDWELL = msetHans22$tissue_age
+#looking at all samples from MEMO that have a dwell time in msetHans
+#msetHans22 <- read.csv("~/msetHans22.csv")
+patDWELL = msetHans22$tissue_age[ msetHans22$BE == "yes" & !is.na(msetHans22$tissue_age) & msetHans22$HGD.LGD == "yes"]
+namesDWELL = msetHans22$X[ msetHans22$BE == "yes" & !is.na(msetHans22$tissue_age)& msetHans22$HGD.LGD == "yes"]
 #be careful using which and indices 
-serious = which(!is.na(patDWELL))
-serious2 = which(msetHans22$BE == "yes")
-serious = intersect(serious,serious2)
-DWELL = patDWELL[serious]
-namesDWELL = as.character(as.vector(msetHans22[serious,]$X))
+#serious = which(!is.na(patDWELL))
+#serious2 = which(msetHans22$BE == "yes")
+#serious3 = intersect(serious,serious2)
+#DWELL = patDWELL
+#namesDWELL = as.character(as.vector(patDWELL$X))
 allDWELL = MEMOsmall[,namesDWELL]
 allDWELL = MEMOsmall[,namesDWELL]
 #msetHans22[serious,]$tissue_age
+#corDWELL will contain the correlation with mean squamus for all BE MEMO samples 
 corDWELL = numeric(length(namesDWELL))
 meanSQM = meanrowSQM[sigRows]
 
-
-library("proxy")
-for(i in 1:length(DWELL)) {
+#memeCARD is the mean cardia sample from MEMO
+for(i in 1:length(namesDWELL)) {
   
-    corDWELL[i] = cor(c(memeCARD), c(MEMOsmall[,namesDWELL[i]]))
+    corDWELL[i] = cor(c(), c(MEMOsmall[,namesDWELL[i]]))
 }
-plot(DWELL, corDWELL,pch=19)
+
+
+plot(patDWELL, corDWELL, pch=19)
+plot()
+title("Corr with Carida vs dwell time MEMO")
+
+#plot points above and below correlation level
 ding = corDWELL[corDWELL > 0.6]
 stuff = DWELL[corDWELL > 0.6]
 plot(stuff,ding,pch=19)
@@ -408,42 +404,23 @@ ab = intersect(a,b)
 ac = intersect(a,c)
 bc = intersect(b,c)
 
-
-
-
-#ask georg about taking out a few cpgs for regularization between samples
-
-#see if intersects in dmps cpgs are related 
-
-#color by age and see if they cluster
-
-#blood meth value correlation blood takes up a lot of damages stuff
-
-#centroid distance vs GEJ distance correlation 
-
-#dwell time vs correlation with cardia
-
-#test matched cardia squamus
-
-#redo correlation graph with only BE
-
-#familial BE
-
-nameMEME= c("200325530006_R02C02", "200325530006_R06C01", "200394970056_R04C01", "200325530003_R01C01", "200325530006_R05C01")
-memeCARD = rowMeans(MEMOsmall[,nameMEME])
-plot(memeCARD, meanCARD , pch =19)
+#list of MEMO cardia samples
+MEMOcard= c("200325530006_R02C02", "200325530006_R06C01", "200394970056_R04C01", "200325530003_R01C01", "200325530006_R05C01")
+avgMEMCARD = rowMeans(MEMOsmall[,MEMOcard])
+plot(avgMEMCARD, meanCARD , pch =19)
 
 
 BETRNET200 = getM(BETRNETmset[sigRows, ])
 #analysis for BETRNET matched
 matBETnames = pheno[pheno$DNA.soln %in% DNAsoln,]
-allBETmach  = BETRNET200[,matBETnames]
+#allBETmach has all the BETRNET samples with dwell times 
+allBETmach  = BETRNET200[,names(matBETnames)]
 
 
-index = which(pheno$DNA.soln %in% DNAsoln)
-indexSQM = index + 1
+#index = which(pheno$DNA.soln %in% DNAsoln)
+#indexSQM = index + 1
 
-allSQMmatch = BETRNET200[,indexSQM]
+#3allSQMmatch = BETRNET200[,indexSQM]
 
 corBETdwell = numeric(ncol(allBETmach))
 
@@ -463,7 +440,92 @@ age = c(8.679, 32.44, 12.77, 1.967, 4.664, 9.01 , 47.54, 26.76,  46.82 ,  49.29 
 50.07, 27.53, 38.95, 25.03, 50.41, 40.71, 56.01, 29.19, 58.68, 40.77, 46.78)
 
 
+#analysis based on seans packages
+install.packages("pvclust")
+library(pvclust)
+try = pvclust(sigpat22)
+#ape part of analysis 
+install.packages("ape")
+library(ape)
+
+apeTRY = fastme.bal(dist(sigpat22))
+
+
+#try doing the  data but for different markers all of it 
+#look at fine structure correlation across samples
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+#extenous old code
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#ask georg about taking out a few cpgs for regularization between samples
+
+
+#color by age and see if they cluster
+
+#blood meth value correlation blood takes up a lot of damages stuff
+
+#centroid distance vs GEJ distance correlation 
+
+#dwell time vs correlation with cardia
+
+#test matched cardia squamus
+
+#redo correlation graph with only BE
+
+#familial BE
+
+
+
+dif = cardVal - SQMval
+meanrowCARD = rowMeans(cardVal)
+meanrowSQM = rowMeans(SQMval)
+
+difmeans = meanrowCARD - meanrowSQM
+d <- density(difmeans)
+plot(d)
+a = list(cardia = cardVal[2,], SQ = SQMval[2,])
+boxplot(a)
+
+# old sigrows which(abs(meanrow - meanrowSQM) > 5)
+
+sigMeans = difmeans[sigRows]
+d <- density(sigMeans)
+plot(d)
+
+sum(find$qval[sigRows] > 0.01)
+sort(find$qval[sigRows])
+#volcano plot
+deltaM = difmeans[sigRows]
+
+qval = -log(find$qval[sigRows])
+
+plot(deltaM, qval, pch = 19, cex = 0.5)
+
+#mean m value for difference larger then five
+#squamus is fairly large
+largesig = which(meanrow - meanrowSQM > 5)
+val = meanrowSQM[largesig]
+val2 = meanrow[largesig]
+
+#plot
+sigCARD = cardVal[sigRows,]
+sigSQMval = SQMval[sigRows,]
+sigBEval = BEval[sigRows,]
+
+plot(SQMval[sigRows,1], pch = 19, cex = 0.6, , ylim = c(-6,6) )
+cor.test(meanrowSQM[sigRows], BEmean)
 
